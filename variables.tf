@@ -95,25 +95,31 @@ variable "web_instance_type" {
 variable "web_desired_capacity" {
   description = "Desired number of web instances in the Auto Scaling Group"
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "web_min_size" {
   description = "Minimum number of web instances in the Auto Scaling Group"
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "web_max_size" {
   description = "Maximum number of web instances in the Auto Scaling Group"
   type        = number
-  default     = 6
+  default     = 8
 }
 
 variable "web_cpu_target_value" {
   description = "Target average CPU utilization for the web target tracking scaling policy"
   type        = number
-  default     = 60
+  default     = 50
+}
+
+variable "web_scaling_warmup" {
+  description = "Warm-up time in seconds for the web target tracking scaling policy"
+  type        = number
+  default     = 300
 }
 
 # This variable has NO default and MUST be set explicitly. The web ALB is

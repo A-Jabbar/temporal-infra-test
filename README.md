@@ -112,6 +112,25 @@ subnets.
   `httpd` — so the target group and health check use HTTP:80 and the web
   security group opens port 80 to the ALB security group only.
 
+### Autoscaling & Right-Sizing
+
+The web ASG is configured to right-size capacity to match demand. The launch
+template uses **`t3.small`** instances, and the ASG runs a **target tracking
+scaling policy** on average CPU utilization. The defaults are:
+
+- **Desired capacity:** `1`
+- **Minimum size:** `1`
+- **Maximum size:** `8`
+- **CPU target value:** `50%`
+- **Scaling warm-up:** `300` seconds (5 minutes)
+
+The policy scales the fleet between the min (1) and max (8) sizes to keep
+average CPU near 50%. Savings come primarily from scaling down to a **single
+`t3.small`** instance during off-hours/low demand; the launch template remains
+`t3.small` (no instance-type change). The 300-second warm-up prevents scale
+flapping by giving newly launched instances time to come up before the policy
+re-evaluates.
+
 ### Resources Created
 
 - **Launch template** (`pulsar-web-launch-template`): selects the latest Amazon
@@ -135,9 +154,10 @@ subnets.
   private, blocks all public access, grants the ELB service account and log
   delivery service write access, and expires logs after 90 days.
 - **Auto Scaling Group** (`pulsar-web-asg`): launch template referenced, ELB
-  health checks, desired `2` / min `2` / max `6`, attached to the target group.
+  health checks, desired `1` / min `1` / max `8`, attached to the target group.
 - **Target tracking scaling policy**: scales on average CPU utilization at
-  `web_cpu_target_value` (default 60%) between the min and max sizes.
+  `web_cpu_target_value` (default 50%) between the min and max sizes, with a
+  300-second (`web_scaling_warmup`) instance warm-up.
 
 ### Important: Set the Web Certificate ARN
 
@@ -185,6 +205,8 @@ After applying, verify the deployment:
   - `terraform output alb_dns_name`
 - ALB access logs are written to the `pulsar-web-alb-access-logs-*` S3 bucket
   under the `alb/` prefix.
+- Confirm the scaling policy is active in the ASG **Automatic Scaling** tab and
+  that the ASG scales in to 1 instance when CPU is below the 50% target.
 
 ### Rollback
 
@@ -193,11 +215,22 @@ target group, and launch template. In Terraform, run `terraform destroy` (or
 remove the `module "web"` block and apply). This does not affect the network
 layer or any data.
 
+To revert the autoscaling/right-sizing changes, set the ASG desired/min back to
+`2` and max back to `6` (or adjust the `web_*` variables accordingly), restore
+the CPU target to `60%`, and re-apply.
+
 ### Notes
 
 - Before managing real infrastructure, plan to configure a remote backend
   (e.g., S3 + DynamoDB) to avoid state loss or conflicts.
 - The VPC CIDR and subnet sizes are fixed. Plan for future expansion if the
   platform grows beyond the available IP space.
+- Setting the ASG minimum to 1 removes instance-level redundancy. If the Pulsar
+  web tier requires high availability, keep the minimum at 2 and rely on
+  right-sizing the instance type instead.
+- Target tracking policies react to metrics, so there is a slight delay (5–10
+  minutes) before scale-out occurs. Consider a scheduled scaling policy for
+  known peak windows in addition to the target tracking policy if the app
+  experiences sudden traffic spikes.
 - To roll back the network layer, delete the NAT gateway, IGW, route tables,
   subnets, and finally the VPC. This disrupts any running workloads in the VPC.

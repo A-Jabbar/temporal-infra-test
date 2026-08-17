@@ -29,5 +29,6 @@ module "web" {
   min_size          = var.web_min_size
   max_size          = var.web_max_size
   cpu_target_value  = var.web_cpu_target_value
+  scaling_warmup    = var.web_scaling_warmup
   alb_ingress_cidrs = var.web_alb_ingress_cidrs
 }
