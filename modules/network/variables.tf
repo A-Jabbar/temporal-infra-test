@@ -38,9 +38,8 @@ variable "tags" {
 }
 
 variable "bastion_allowed_cidr" {
-  description = "CIDR block allowed to SSH into the bastion security group"
+  description = "CIDR block allowed to SSH into the bastion security group. Must be set explicitly (e.g., your office IP range) to avoid opening SSH to the whole internet."
   type        = string
-  default     = "0.0.0.0/0"
 }
 
 variable "app_ports" {

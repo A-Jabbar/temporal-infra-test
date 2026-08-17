@@ -30,6 +30,11 @@ Apply the configuration:
 terraform apply
 ```
 
+> **Note:** The `bastion_allowed_cidr` variable has no default and **must be
+> provided** (e.g., via `-var`, a `.tfvars` file, or environment variables).
+> `terraform plan`/`apply` will fail until it is set. See
+> [Important: Set the Bastion CIDR](#important-set-the-bastion-cidr) below.
+
 ## Network Layer
 
 The configuration provisions a foundational VPC network layer via the
@@ -64,7 +69,8 @@ database workloads.
   - `Pulsar-app-sg`: app ports (`app_ports`, default `8080`, `443`) from the VPC
     CIDR, and HTTPS egress to `0.0.0.0/0`.
   - `Pulsar-db-sg`: database port (`db_port`, default `5432`) from the app
-    security group, with no outbound internet access.
+    security group. Egress is explicitly restricted to the VPC CIDR only, so
+    the database tier has **no outbound internet access**.
 
 ### Tagging
 
@@ -72,12 +78,12 @@ All resources are tagged with `Environment`, `Project`, and `ManagedBy` for cost
 allocation and tracking. The `default_tags` variable is applied as provider-level
 default tags, and `Environment` defaults to `pulsar`.
 
-### Important: Replace the Bastion CIDR Placeholder
+### Important: Set the Bastion CIDR
 
-The `bastion_allowed_cidr` variable defaults to `0.0.0.0/0` as a placeholder.
-**Replace this with your office IP range** (e.g., `203.0.113.0/24`) before
-applying to real infrastructure. Leaving it wide open allows SSH from anywhere,
-which is a security risk.
+The `bastion_allowed_cidr` variable has **no default** and must be set explicitly
+to your office IP range (e.g., `203.0.113.0/24`) or a bastion host CIDR. It is
+deliberately not defaulted to `0.0.0.0/0`, which would open SSH to the entire
+internet. `terraform plan`/`apply` will fail until you provide a value.
 
 ### Notes
 

@@ -57,13 +57,13 @@ variable "private_subnet_cidrs" {
   }
 }
 
-# TODO: Replace this placeholder with your office IP range (e.g., "203.0.113.0/24")
-# before applying to real infrastructure. Leaving it as 0.0.0.0/0 allows SSH
-# from anywhere, which is a security risk.
+# This variable has NO default and MUST be set explicitly. Replace it with your
+# office IP range (e.g., "203.0.113.0/24") or a bastion host CIDR before
+# applying. Leaving it unset (or wide open) would allow SSH from anywhere,
+# which is a security risk.
 variable "bastion_allowed_cidr" {
   description = "CIDR block allowed to SSH into the bastion security group"
   type        = string
-  default     = "0.0.0.0/0"
 }
 
 variable "app_ports" {

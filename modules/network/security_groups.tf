@@ -70,6 +70,18 @@ resource "aws_security_group" "db" {
     security_groups = [aws_security_group.app.id]
   }
 
+  # Explicit egress restricted to the VPC CIDR only. This enforces the
+  # "no outbound internet access" requirement for the database tier: traffic is
+  # only allowed within the VPC (e.g., to the app tier), and nothing can reach
+  # 0.0.0.0/0.
+  egress {
+    description = "Outbound restricted to VPC CIDR only (no internet)"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
   tags = merge(var.tags, {
     Name        = "Pulsar-db-sg"
     Environment = var.environment
