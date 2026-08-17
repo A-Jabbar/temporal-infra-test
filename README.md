@@ -39,6 +39,11 @@ terraform apply
 > provided** before applying. See
 > [Important: Set the Web Certificate ARN](#important-set-the-web-certificate-arn)
 > below.
+>
+> **Note:** The `web_alb_ingress_cidrs` variable also has no default and **must
+> be provided** before applying. See
+> [Important: Set the Web ALB Ingress CIDRs](#important-set-the-web-alb-ingress-cidrs)
+> below.
 
 ## Network Layer
 
@@ -97,22 +102,38 @@ The configuration provisions the horizontally scalable EC2 web tier via the
 (ALB) in front of an Auto Scaling Group (ASG) running across the three private
 subnets.
 
+### Architecture
+
+- The **internet-facing ALB** is placed in the **public subnets** (which have a
+  route to the Internet Gateway) so it is reachable from the internet. It
+  terminates TLS on port 443.
+- The **ASG instances** run in the **private subnets** (egress via the NAT
+  Gateway). The ALB forwards plain HTTP on port 80 to the instances, which run
+  `httpd` — so the target group and health check use HTTP:80 and the web
+  security group opens port 80 to the ALB security group only.
+
 ### Resources Created
 
 - **Launch template** (`pulsar-web-launch-template`): selects the latest Amazon
   Linux 2 HVM x86_64 AMI owned by `amazon`, uses `t3.small` instances, attaches
   the web security group, and runs a bootstrap script that installs and starts
-  `httpd` and serves a simple `/health` response page.
+  `httpd` and serves a simple `/health` response page. The ASG references the
+  template's **`$Default`** version so launch template changes are reviewed
+  before being applied to new instances.
 - **Security groups**:
   - `pulsar-alb-sg`: allows HTTPS (443) inbound from `web_alb_ingress_cidrs`
-    (default `0.0.0.0/0`) and all egress.
-  - `pulsar-web-sg`: allows HTTPS (443) inbound from `pulsar-alb-sg` only and
-    all egress.
-- **Target group** (`pulsar-web-tg`): type `instance`, HTTPS on port 443, with a
+    (required, no default) and all egress.
+  - `pulsar-web-sg`: allows HTTP (80) inbound from `pulsar-alb-sg` only and all
+    egress.
+- **Target group** (`pulsar-web-tg`): type `instance`, HTTP on port 80, with a
   health check on `health_check_path` (default `/health`).
 - **Application Load Balancer** (`pulsar-web-alb`): internet-facing, IPv4,
-  attached to the three private subnets with an HTTPS:443 listener forwarding to
-  `pulsar-web-tg`.
+  attached to the three **public subnets**, with `enable_deletion_protection =
+  true`, ALB access logs delivered to a private S3 bucket, and an HTTPS:443
+  listener forwarding to `pulsar-web-tg`.
+- **ALB access-log S3 bucket** (`pulsar-web-alb-access-logs-<account>-<env>`):
+  private, blocks all public access, grants the ELB service account and log
+  delivery service write access, and expires logs after 90 days.
 - **Auto Scaling Group** (`pulsar-web-asg`): launch template referenced, ELB
   health checks, desired `2` / min `2` / max `6`, attached to the target group.
 - **Target tracking scaling policy**: scales on average CPU utilization at
@@ -131,6 +152,26 @@ terraform apply -var="certificate_arn=arn:aws:acm:us-east-1:463737305712:certifi
 
 `terraform plan`/`apply` will fail until this is provided.
 
+### Important: Set the Web ALB Ingress CIDRs
+
+The web ALB is **internet-facing**, and the `web_alb_ingress_cidrs` variable has
+**no default** and must be set before applying. It scopes which source CIDRs may
+reach the ALB on HTTPS:
+
+- Use `["0.0.0.0/0"]` **only** if the web app is genuinely public.
+- Otherwise restrict it to the required ranges (e.g., your office/partner
+  CIDRs).
+
+It is deliberately not defaulted to a wide-open range without an explicit
+decision. Example:
+
+```bash
+terraform apply \
+  -var="web_alb_ingress_cidrs=[\"0.0.0.0/0\"]"
+```
+
+`terraform plan`/`apply` will fail until this is provided.
+
 ### Usage & Verification
 
 After applying, verify the deployment:
@@ -142,6 +183,8 @@ After applying, verify the deployment:
     tab in the console.
 - Browse to the ALB DNS name (expect the web server default page or your app):
   - `terraform output alb_dns_name`
+- ALB access logs are written to the `pulsar-web-alb-access-logs-*` S3 bucket
+  under the `alb/` prefix.
 
 ### Rollback
 

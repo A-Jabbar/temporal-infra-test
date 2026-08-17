@@ -116,8 +116,12 @@ variable "web_cpu_target_value" {
   default     = 60
 }
 
+# This variable has NO default and MUST be set explicitly. The web ALB is
+# internet-facing, so this scopes which source CIDRs may reach it on HTTPS.
+# Use "0.0.0.0/0" only if the web app is genuinely public; otherwise restrict
+# it to the required ranges (e.g., your office/partner CIDRs). It is
+# deliberately not defaulted to a wide-open range without an explicit decision.
 variable "web_alb_ingress_cidrs" {
-  description = "CIDR blocks allowed to reach the internet-facing web ALB on HTTPS"
+  description = "CIDR blocks allowed to reach the internet-facing web ALB on HTTPS (required)"
   type        = list(string)
-  default     = ["0.0.0.0/0"]
 }

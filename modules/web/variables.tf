@@ -3,8 +3,13 @@ variable "vpc_id" {
   type        = string
 }
 
+variable "public_subnet_ids" {
+  description = "Map of availability zone to public subnet ID for the internet-facing ALB"
+  type        = map(string)
+}
+
 variable "private_subnet_ids" {
-  description = "Map of availability zone to private subnet ID for the ASG and ALB"
+  description = "Map of availability zone to private subnet ID for the ASG instances"
   type        = map(string)
 }
 
@@ -72,8 +77,12 @@ variable "certificate_arn" {
   type        = string
 }
 
+# This variable has NO default and MUST be set explicitly. The ALB is
+# internet-facing, so the ingress CIDR range is scoped to the required source
+# ranges only (e.g., "0.0.0.0/0" only if the web app is genuinely public, or a
+# narrower corporate/office range otherwise). It is deliberately not defaulted
+# to a wide-open range without an explicit decision.
 variable "alb_ingress_cidrs" {
-  description = "CIDR blocks allowed to reach the internet-facing ALB on HTTPS"
+  description = "CIDR blocks allowed to reach the internet-facing ALB on HTTPS (required)"
   type        = list(string)
-  default     = ["0.0.0.0/0"]
 }

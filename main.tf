@@ -17,6 +17,7 @@ module "web" {
   source = "./modules/web"
 
   vpc_id             = module.network.vpc_id
+  public_subnet_ids  = module.network.public_subnet_ids
   private_subnet_ids = module.network.private_subnet_ids
   environment        = var.environment
   project_name       = var.project_name
