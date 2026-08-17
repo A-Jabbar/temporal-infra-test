@@ -125,3 +125,23 @@ variable "web_alb_ingress_cidrs" {
   description = "CIDR blocks allowed to reach the internet-facing web ALB on HTTPS (required)"
   type        = list(string)
 }
+
+# Master password for the RDS instance. This has NO default and MUST be set
+# before applying.
+variable "db_password" {
+  description = "Master password for the RDS instance (required)"
+  type        = string
+  sensitive   = true
+}
+
+variable "db_username" {
+  description = "Master username for the RDS instance"
+  type        = string
+  default     = "pulsar_admin"
+}
+
+variable "db_name" {
+  description = "Name of the initial database to create"
+  type        = string
+  default     = "pulsar"
+}
