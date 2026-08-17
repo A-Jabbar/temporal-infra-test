@@ -75,3 +75,23 @@ output "alb_sg_id" {
   description = "ID of the Pulsar web ALB security group"
   value       = module.web.alb_sg_id
 }
+
+output "security_log_bucket_id" {
+  description = "ID (name) of the encrypted, private security log S3 bucket"
+  value       = module.security_logging.log_bucket_id
+}
+
+output "security_log_bucket_arn" {
+  description = "ARN of the encrypted, private security log S3 bucket"
+  value       = module.security_logging.log_bucket_arn
+}
+
+output "cloudtrail_id" {
+  description = "Name of the Pulsar CloudTrail trail"
+  value       = module.security_logging.cloudtrail_id
+}
+
+output "vpc_flow_log_ids" {
+  description = "Map of VPC ID to VPC Flow Log ID"
+  value       = module.security_logging.flow_log_ids
+}
