@@ -31,3 +31,19 @@ module "web" {
   cpu_target_value  = var.web_cpu_target_value
   alb_ingress_cidrs = var.web_alb_ingress_cidrs
 }
+
+module "db" {
+  source = "./modules/db"
+
+  private_subnet_ids = values(module.network.private_subnet_ids)
+  db_sg_id           = module.network.db_sg_id
+  web_sg_id          = module.web.web_sg_id
+  environment        = var.environment
+  project_name       = var.project_name
+  tags               = var.default_tags
+
+  db_name     = var.db_name
+  db_username = var.db_username
+  db_password = var.db_password
+  db_port     = var.db_port
+}

@@ -75,3 +75,23 @@ output "alb_sg_id" {
   description = "ID of the Pulsar web ALB security group"
   value       = module.web.alb_sg_id
 }
+
+output "db_instance_id" {
+  description = "ID of the Pulsar RDS instance"
+  value       = module.db.db_instance_id
+}
+
+output "db_endpoint" {
+  description = "Address/hostname (endpoint) of the Pulsar RDS instance"
+  value       = module.db.db_endpoint
+}
+
+output "db_port" {
+  description = "Port on which the Pulsar RDS instance listens"
+  value       = module.db.db_port
+}
+
+output "db_subnet_group_id" {
+  description = "ID of the Pulsar DB subnet group"
+  value       = module.db.db_subnet_group_id
+}

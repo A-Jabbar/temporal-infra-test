@@ -44,6 +44,10 @@ terraform apply
 > be provided** before applying. See
 > [Important: Set the Web ALB Ingress CIDRs](#important-set-the-web-alb-ingress-cidrs)
 > below.
+>
+> **Note:** The `db_password` variable also has no default and **must be
+> provided** before applying. See
+> [Database Tier](#database-tier) below.
 
 ## Network Layer
 
@@ -192,6 +196,61 @@ To roll back the web tier, delete the ASG (instances terminate), then the ALB,
 target group, and launch template. In Terraform, run `terraform destroy` (or
 remove the `module "web"` block and apply). This does not affect the network
 layer or any data.
+
+## Database Tier
+
+The configuration provisions an encrypted, Multi-AZ managed RDS PostgreSQL
+database via the `modules/db` module. It uses the existing private subnets and
+the existing `Pulsar-db-sg` security group.
+
+### Resources Created
+
+- **KMS key** (`alias/pulsar-rds`): used for encryption at rest, with key
+  rotation enabled and a 7-day deletion window.
+- **DB subnet group** (`pulsar-db-subnet-group`): placed on the private subnets
+  (description `Private subnets for Pulsar PostgreSQL`).
+- **RDS instance** (`pulsar-postgres`): PostgreSQL 15, `db.t4g.small`, `gp3`
+  storage of 20 GB with autoscaling up to 100 GB, **Multi-AZ** (standby in a
+  different AZ), **encryption at rest enabled**, automated backups retained for
+  7 days, **deletion protection enabled**, and **not publicly accessible**.
+- **Security-group rule**: adds an ingress rule to the existing `Pulsar-db-sg`
+  allowing TCP `db_port` (5432) from the **web tier security group only** (not
+  `0.0.0.0/0`).
+
+### Important: Set the Database Password
+
+The `db_password` variable has **no default** and must be set before applying.
+It is the master password for the RDS instance and is marked `sensitive`. For
+example:
+
+```bash
+terraform apply -var="db_password=change-me"
+```
+
+`terraform plan`/`apply` will fail until this is provided. The master username
+defaults to `pulsar_admin` (override with `db_username`) and the initial database
+name defaults to `pulsar` (override with `db_name`).
+
+### Usage & Verification
+
+After applying, verify the deployment:
+
+- Check the RDS instance is `Available` and confirm Multi-AZ `Yes`, Encryption
+  `Enabled`, and Publicly accessible `No` in the console.
+- Retrieve the endpoint and port for the application connection string:
+  - `terraform output db_endpoint` (port via `terraform output db_port`, default
+    `5432`).
+- Connect from the web tier using `psql` or the application connection string
+  with the endpoint, port `5432`, database name `pulsar`, and the credentials
+  created above.
+
+### Rollback
+
+To roll back the database tier, disable deletion protection, then delete the RDS
+instance (a final snapshot is taken), and remove the security-group rule, DB
+subnet group, and KMS key. In Terraform, run `terraform destroy` (or remove the
+`module "db"` block and apply). This causes data loss; export backups before
+deleting if needed.
 
 ### Notes
 
