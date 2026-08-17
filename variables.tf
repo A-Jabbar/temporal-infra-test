@@ -77,3 +77,47 @@ variable "db_port" {
   type        = number
   default     = 5432
 }
+
+# ACM certificate ARN for the web ALB HTTPS listener. This has NO default and
+# MUST be set (e.g., request a certificate via AWS Certificate Manager and pass
+# its ARN) before applying, otherwise the HTTPS listener cannot be created.
+variable "certificate_arn" {
+  description = "ARN of the ACM certificate for the web ALB HTTPS listener"
+  type        = string
+}
+
+variable "web_instance_type" {
+  description = "EC2 instance type for the web tier instances"
+  type        = string
+  default     = "t3.small"
+}
+
+variable "web_desired_capacity" {
+  description = "Desired number of web instances in the Auto Scaling Group"
+  type        = number
+  default     = 2
+}
+
+variable "web_min_size" {
+  description = "Minimum number of web instances in the Auto Scaling Group"
+  type        = number
+  default     = 2
+}
+
+variable "web_max_size" {
+  description = "Maximum number of web instances in the Auto Scaling Group"
+  type        = number
+  default     = 6
+}
+
+variable "web_cpu_target_value" {
+  description = "Target average CPU utilization for the web target tracking scaling policy"
+  type        = number
+  default     = 60
+}
+
+variable "web_alb_ingress_cidrs" {
+  description = "CIDR blocks allowed to reach the internet-facing web ALB on HTTPS"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}

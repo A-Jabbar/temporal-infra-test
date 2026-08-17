@@ -34,6 +34,11 @@ terraform apply
 > provided** (e.g., via `-var`, a `.tfvars` file, or environment variables).
 > `terraform plan`/`apply` will fail until it is set. See
 > [Important: Set the Bastion CIDR](#important-set-the-bastion-cidr) below.
+>
+> **Note:** The `certificate_arn` variable also has no default and **must be
+> provided** before applying. See
+> [Important: Set the Web Certificate ARN](#important-set-the-web-certificate-arn)
+> below.
 
 ## Network Layer
 
@@ -85,11 +90,71 @@ to your office IP range (e.g., `203.0.113.0/24`) or a bastion host CIDR. It is
 deliberately not defaulted to `0.0.0.0/0`, which would open SSH to the entire
 internet. `terraform plan`/`apply` will fail until you provide a value.
 
+## Web Tier
+
+The configuration provisions the horizontally scalable EC2 web tier via the
+`modules/web` module. It deploys an internet-facing Application Load Balancer
+(ALB) in front of an Auto Scaling Group (ASG) running across the three private
+subnets.
+
+### Resources Created
+
+- **Launch template** (`pulsar-web-launch-template`): selects the latest Amazon
+  Linux 2 HVM x86_64 AMI owned by `amazon`, uses `t3.small` instances, attaches
+  the web security group, and runs a bootstrap script that installs and starts
+  `httpd` and serves a simple `/health` response page.
+- **Security groups**:
+  - `pulsar-alb-sg`: allows HTTPS (443) inbound from `web_alb_ingress_cidrs`
+    (default `0.0.0.0/0`) and all egress.
+  - `pulsar-web-sg`: allows HTTPS (443) inbound from `pulsar-alb-sg` only and
+    all egress.
+- **Target group** (`pulsar-web-tg`): type `instance`, HTTPS on port 443, with a
+  health check on `health_check_path` (default `/health`).
+- **Application Load Balancer** (`pulsar-web-alb`): internet-facing, IPv4,
+  attached to the three private subnets with an HTTPS:443 listener forwarding to
+  `pulsar-web-tg`.
+- **Auto Scaling Group** (`pulsar-web-asg`): launch template referenced, ELB
+  health checks, desired `2` / min `2` / max `6`, attached to the target group.
+- **Target tracking scaling policy**: scales on average CPU utilization at
+  `web_cpu_target_value` (default 60%) between the min and max sizes.
+
+### Important: Set the Web Certificate ARN
+
+The web ALB uses an HTTPS listener, which **requires a valid SSL/TLS
+certificate**. The `certificate_arn` variable has **no default** and must be set
+before applying. Request a certificate via AWS Certificate Manager (ACM) for
+your domain and pass its ARN, e.g.:
+
+```bash
+terraform apply -var="certificate_arn=arn:aws:acm:us-east-1:463737305712:certificate/xxxx"
+```
+
+`terraform plan`/`apply` will fail until this is provided.
+
+### Usage & Verification
+
+After applying, verify the deployment:
+
+- Check the ASG is launching and passing health checks:
+  - `terraform output asg_id` and inspect the ASG in the console.
+- Confirm instances are healthy in the target group:
+  - `terraform output target_group_arn` and inspect the `pulsar-web-tg` Targets
+    tab in the console.
+- Browse to the ALB DNS name (expect the web server default page or your app):
+  - `terraform output alb_dns_name`
+
+### Rollback
+
+To roll back the web tier, delete the ASG (instances terminate), then the ALB,
+target group, and launch template. In Terraform, run `terraform destroy` (or
+remove the `module "web"` block and apply). This does not affect the network
+layer or any data.
+
 ### Notes
 
 - Before managing real infrastructure, plan to configure a remote backend
   (e.g., S3 + DynamoDB) to avoid state loss or conflicts.
 - The VPC CIDR and subnet sizes are fixed. Plan for future expansion if the
   platform grows beyond the available IP space.
-- To roll back, delete the NAT gateway, IGW, route tables, subnets, and finally
-  the VPC. This disrupts any running workloads in the VPC.
+- To roll back the network layer, delete the NAT gateway, IGW, route tables,
+  subnets, and finally the VPC. This disrupts any running workloads in the VPC.
