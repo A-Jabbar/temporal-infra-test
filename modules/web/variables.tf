@@ -51,25 +51,31 @@ variable "health_check_path" {
 variable "desired_capacity" {
   description = "Desired number of instances in the Auto Scaling Group"
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "min_size" {
   description = "Minimum number of instances in the Auto Scaling Group"
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "max_size" {
   description = "Maximum number of instances in the Auto Scaling Group"
   type        = number
-  default     = 6
+  default     = 8
 }
 
 variable "cpu_target_value" {
   description = "Target average CPU utilization for the target tracking scaling policy"
   type        = number
-  default     = 60
+  default     = 50
+}
+
+variable "scaling_warmup" {
+  description = "Warm-up time in seconds for the target tracking scaling policy"
+  type        = number
+  default     = 300
 }
 
 variable "certificate_arn" {

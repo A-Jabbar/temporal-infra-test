@@ -281,9 +281,10 @@ resource "aws_autoscaling_group" "web" {
 }
 
 resource "aws_autoscaling_policy" "web" {
-  name                   = "pulsar-web-cpu-tracking"
-  autoscaling_group_name = aws_autoscaling_group.web.name
-  policy_type            = "TargetTrackingScaling"
+  name                      = "pulsar-web-cpu-tracking"
+  autoscaling_group_name    = aws_autoscaling_group.web.name
+  policy_type               = "TargetTrackingScaling"
+  estimated_instance_warmup = var.scaling_warmup
 
   target_tracking_configuration {
     predefined_metric_specification {
