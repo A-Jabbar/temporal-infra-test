@@ -31,3 +31,12 @@ module "web" {
   cpu_target_value  = var.web_cpu_target_value
   alb_ingress_cidrs = var.web_alb_ingress_cidrs
 }
+
+module "security_logging" {
+  source = "./modules/security_logging"
+
+  environment  = var.environment
+  project_name = var.project_name
+  tags         = var.default_tags
+  vpc_ids      = [module.network.vpc_id]
+}

@@ -193,6 +193,53 @@ target group, and launch template. In Terraform, run `terraform destroy` (or
 remove the `module "web"` block and apply). This does not affect the network
 layer or any data.
 
+## Security Logging
+
+The configuration hardens the Pulsar platform's audit and network visibility via
+the `modules/security_logging` module. It provisions an encrypted, private S3
+bucket for security logs, a multi-region CloudTrail trail with log file
+validation, and VPC Flow Logs for the Pulsar VPC.
+
+### Resources Created
+
+- **Security log S3 bucket** (`pulsar-security-logs-<account>`): private,
+  blocks all public access, server-side encrypted with SSE-S3 (AES256), and
+  expires logs after `log_retention_days` (default 2557 days / 7 years) via a
+  lifecycle rule.
+- **Bucket policy**: allows only `cloudtrail.amazonaws.com` to write to the
+  `AWSLogs/<account>/*` prefix and `vpc-flow-logs.amazonaws.com` to write to the
+  `vpc-flow-logs/*` prefix (with `GetBucketAcl` and `PutObject`). No public
+  read/write access is granted.
+- **CloudTrail trail** (`pulsar-security-trail`): multi-region
+  (`is_multi_region_trail = true`), log file validation enabled, includes global
+  service events, and delivers to the security log bucket.
+- **VPC Flow Logs** (`pulsar-flow-log-<vpc>`): one per VPC in `vpc_ids`, with
+  `traffic_type = ALL`, `max_aggregation_interval = 600` (10 minutes), delivered
+  to the security log bucket in `plain-text` format with per-hour partitioning.
+
+### Security Group Note
+
+The existing security groups already restrict inbound access to least-privilege —
+there are **no `0.0.0.0/0` inbound rules** on the bastion, app, or database
+security groups. Consequently, no security group changes are required for this
+hardening effort.
+
+### Verification
+
+- CloudTrail: confirm the `pulsar-security-trail` status is **Logging** and shows
+  **Multi-region: Yes**.
+- S3: confirm **Block all public access** is on and encryption (SSE-S3) is
+  enabled on the security log bucket.
+- VPC Flow Logs: confirm the flow log status is **Active** for the Pulsar VPC.
+- After 5–15 minutes, check the bucket for new objects under the `AWSLogs/` and
+  `vpc-flow-logs/` prefixes.
+
+### Rollback
+
+To roll back security logging, delete the flow logs, delete the CloudTrail trail,
+and remove the bucket policy. The S3 bucket can be emptied and deleted after the
+required retention period (or the lifecycle rule can be adjusted).
+
 ### Notes
 
 - Before managing real infrastructure, plan to configure a remote backend
