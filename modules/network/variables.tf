@@ -1,30 +1,3 @@
-variable "region" {
-  description = "AWS region"
-  type        = string
-  default     = "us-east-1"
-}
-
-variable "environment" {
-  description = "Environment name (e.g., dev, prod)"
-  type        = string
-}
-
-variable "project_name" {
-  description = "Project name"
-  type        = string
-  default     = "pulsar"
-}
-
-variable "default_tags" {
-  description = "Default tags applied to all resources"
-  type        = map(string)
-  default = {
-    Project     = "pulsar"
-    ManagedBy   = "terraform"
-    Environment = "pulsar"
-  }
-}
-
 variable "vpc_cidr" {
   description = "CIDR block for the VPC"
   type        = string
@@ -40,26 +13,30 @@ variable "azs" {
 variable "public_subnet_cidrs" {
   description = "Map of availability zone to public subnet CIDR"
   type        = map(string)
-  default = {
-    "us-east-1a" = "10.0.1.0/24"
-    "us-east-1b" = "10.0.2.0/24"
-    "us-east-1c" = "10.0.3.0/24"
-  }
 }
 
 variable "private_subnet_cidrs" {
   description = "Map of availability zone to private subnet CIDR"
   type        = map(string)
-  default = {
-    "us-east-1a" = "10.0.101.0/24"
-    "us-east-1b" = "10.0.102.0/24"
-    "us-east-1c" = "10.0.103.0/24"
-  }
 }
 
-# TODO: Replace this placeholder with your office IP range (e.g., "203.0.113.0/24")
-# before applying to real infrastructure. Leaving it as 0.0.0.0/0 allows SSH
-# from anywhere, which is a security risk.
+variable "environment" {
+  description = "Environment name (e.g., dev, prod)"
+  type        = string
+}
+
+variable "project_name" {
+  description = "Project name"
+  type        = string
+  default     = "pulsar"
+}
+
+variable "tags" {
+  description = "Additional tags applied to all resources"
+  type        = map(string)
+  default     = {}
+}
+
 variable "bastion_allowed_cidr" {
   description = "CIDR block allowed to SSH into the bastion security group"
   type        = string
