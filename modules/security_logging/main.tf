@@ -76,6 +76,11 @@ data "aws_iam_policy_document" "security_logs" {
       aws_s3_bucket.security_logs.arn,
       "${aws_s3_bucket.security_logs.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*",
     ]
+    condition {
+      test     = "StringEquals"
+      variable = "s3:x-amz-acl"
+      values   = ["bucket-owner-full-control"]
+    }
   }
 
   statement {
