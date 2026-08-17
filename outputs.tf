@@ -45,3 +45,33 @@ output "db_sg_id" {
   description = "ID of the database security group"
   value       = module.network.db_sg_id
 }
+
+output "alb_dns_name" {
+  description = "DNS name of the Pulsar web ALB"
+  value       = module.web.alb_dns_name
+}
+
+output "alb_id" {
+  description = "ID of the Pulsar web ALB"
+  value       = module.web.alb_id
+}
+
+output "target_group_arn" {
+  description = "ARN of the Pulsar web target group"
+  value       = module.web.target_group_arn
+}
+
+output "asg_id" {
+  description = "ID of the Pulsar web Auto Scaling Group"
+  value       = module.web.asg_id
+}
+
+output "web_sg_id" {
+  description = "ID of the Pulsar web instance security group"
+  value       = module.web.web_sg_id
+}
+
+output "alb_sg_id" {
+  description = "ID of the Pulsar web ALB security group"
+  value       = module.web.alb_sg_id
+}
